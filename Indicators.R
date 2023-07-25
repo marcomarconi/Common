@@ -1,3 +1,4 @@
+# Technical indicators
 
 GAS <- function(y) {
   h <- c(0,0)
@@ -181,7 +182,7 @@ indicators_tester <- function(df, indi, ...) {
     stop("Neither Volume nor Ticks in the data.frame?")
   # Directional
   if(indi == "ADX_dir"){
-    a <- ADX(df[,3:5], n = 20, ...=...)
+    a <- ADX(df[,3:5], n = 100, ...=...)
     a <- a[,1]-a[,2]
   } else if (indi == "McGinleyDynamicIndicator"){
     a <- McGinleyDynamicIndicator(df$Close)
@@ -271,7 +272,7 @@ indicators_tester <- function(df, indi, ...) {
   }else if (indi == "NormalizedVolume"){
     a <- NormalizedVolume(volume, 20)
   }else if(indi == "ADX_str"){
-    a <- ADX(df[,3:5], n = 20, ...=...)
+    a <- ADX(df[,3:5], n = 100, ...=...)
     #return(ifelse(a[,1] > a[,2], 1, ifelse(a[,1] < a[,2], -1, 0 )  ))
     a <- a[,3]-a[,4]
   } else if (indi == "OBV"){
