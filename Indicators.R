@@ -154,7 +154,7 @@ SDL <- function(x, n1=20, n2=20, ma=TTR::SMA) {
 }
 
 ER <- function(x, n = 20) {
-  return(abs(c(rep(0, n), diff(x, n))) / runSum(abs(c(0,diff(x))), n))
+  return(abs(c(rep(0, n), diff(x, n))) / runSum(abs(c(0,diff(x, 1))), n))
 }
 
 ER_indicator <- function(x, n = 20, ma=TTR::SMA ) {
@@ -163,10 +163,14 @@ ER_indicator <- function(x, n = 20, ma=TTR::SMA ) {
 
 
 FD <- function(x, n = 20) {
-  dx2 <- (1/n)^2
-  L <- runSum(sqrt(dx2 + abs(c(0, diff(x))) / (runMax(x) - runMin(x))), n)
-  return(1 - (log(L)+log(2))/(log(2*n)))
+    dx2 <- (1/n)^2
+    range <- runMax(x, n) - runMin(x, n)
+    range[range==0] <- NA
+    range <- na.locf(range, na.rm=F)
+    L <- runSum(sqrt(dx2 + abs(c(0, diff(x))) / range), n)
+    return(1 + (log(L)+log(2))/(log(2*n)))
 }
+
 
 FD_indicator <- function(x, n = 20, ma=TTR::SMA ) {
   return(FD(x, n) - ma(FD(x, n), n))

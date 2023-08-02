@@ -133,5 +133,17 @@ load_all_data <- function(dir="/home/marco/trading/Historical Data/Yahoo/Scrapin
 }
 
 
+montecarlo_resampler <- function(x, n, f, ...) {
+    res <- rep(NA, n)
+    for(i in 1:n){
+        r <- sample(x, length(x), replace = T)
+        res[i] <- f(r, ...)
+    }
+    return(res)
+}
+
+
+
+
 
 
