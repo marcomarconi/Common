@@ -1,3 +1,6 @@
+library(tidyverse)
+library(Rfast)
+
 # functions to calculare report statistics
 
 strategy_performance <- function(returns, dates = NULL, period = 252) {
@@ -13,6 +16,7 @@ strategy_performance <- function(returns, dates = NULL, period = 252) {
     dates <- seq(as.Date("1970/01/01"), by = "day", length.out = length(returns))
   }
   df <- data.frame(Dates = dates, Returns = returns) %>% arrange(Dates)
+  daily_returns <- df$Returns
   annual_returns <- group_by(df, year(Dates)) %>%
     summarise(Dates = first(year(Dates)), Returns = sum(Returns, na.rm = TRUE)) %>%
     pull(Returns)
@@ -23,14 +27,15 @@ strategy_performance <- function(returns, dates = NULL, period = 252) {
     summarise(Dates = first(yearweek(Dates)), Returns = sum(Returns, na.rm = TRUE)) %>%
     pull(Returns)
   mean_ann_ret <- mean(annual_returns, na.rm = TRUE) * 100
-  ann_sd <- sd(df$Returns, na.rm = TRUE) * sqrt(period) * 100
-  sr <- mean(df$Returns, na.rm = TRUE) / sd(df$Returns, na.rm = TRUE) * sqrt(period)
-  skew_ <- skew(weekly_returns)
-  kurtosis_ <- kurtosis(weekly_returns)
-  q <- quantile(df$Returns[df$Returns != 0], probs = c(0.01, 0.3, 0.7, 0.99), na.rm = TRUE)
+  ann_sd <- sd(daily_returns, na.rm = TRUE) * sqrt(period) * 100
+  sr <- mean(daily_returns, na.rm = TRUE) / sd(daily_returns, na.rm = TRUE) * sqrt(period)
+  skew_ <- skew(weekly_returns[weekly_returns!=0])
+  kurtosis_ <- kurt(weekly_returns[weekly_returns!=0])
+  demeaned_returns <- daily_returns[daily_returns!=0] - mean(daily_returns[daily_returns!=0])
+  q <- quantile(demeaned_returns, probs = c(0.01, 0.3, 0.7, 0.99), na.rm = TRUE)
   lower_tail <- as.numeric(q[1] / q[2] / 4.43)
   upper_tail <- as.numeric(q[4] / q[3] / 4.43)
-  cum_returns <- cumsum(replace(df$Returns, is.na(df$Returns), 0))
+  cum_returns <- cumsum(replace(daily_returns, is.na(daily_returns), 0))
   peak <- cummax(cum_returns)
   drawdown <- peak - cum_returns
   max_drawdown <- -(exp(drawdown[which.max(drawdown)]) - 1) * 100

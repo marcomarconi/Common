@@ -153,28 +153,29 @@ SDL <- function(x, n1=20, n2=20, ma=TTR::SMA) {
   return(ROC(ma(x, n1), n2))
 }
 
-ER <- function(x, n = 20) {
-  return(abs(c(rep(0, n), diff(x, n))) / runSum(abs(c(0,diff(x, 1))), n))
+ER <- function(x) {
+    return(abs(x[length(x)] - x[1]) / sum(abs(diff(x))))
 }
 
-ER_indicator <- function(x, n = 20, ma=TTR::SMA ) {
-  return(ER(x, n) - ma(ER(x, n), n))
+PD <- function(x) {
+    return(sum(abs(diff(x))) / (max(x) - min(x)))
 }
 
-
-FD <- function(x, n = 20) {
-    dx2 <- (1/n)^2
-    range <- runMax(x, n) - runMin(x, n)
-    range[range==0] <- NA
-    range <- na.locf(range, na.rm=F)
-    L <- runSum(sqrt(dx2 + abs(c(0, diff(x))) / range), n)
+FD <- function(x) {
+    n <- length(x)
+    range <- max(x) - min(x)
+    L <- sum(sqrt((1/n)^2 + abs(diff(x)) / range))
     return(1 + (log(L)+log(2))/(log(2*n)))
 }
 
-
-FD_indicator <- function(x, n = 20, ma=TTR::SMA ) {
-  return(FD(x, n) - ma(FD(x, n), n))
+# x are log/percentage returns
+tail_ratio <- function(x, p1=0.1, p2=0.9) {
+    q <- quantile((x - mean(x)) / sd(x), probs = c(p1, p2), na.rm = TRUE);
+    return(q[1] + q[2]) 
 }
+
+
+
 
 # BEWARE we always use the "Close" here, not the adjclose
 indicators_tester <- function(df, indi, ...) {
