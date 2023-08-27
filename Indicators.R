@@ -59,6 +59,39 @@ SSL <- function(HLC, n = 10, type="simple") {
   return(SSLu - SSLd)
 }
 
+SSL2 <- function(x, n = 10, ma=TTR::EMA) {
+    p <- cbind(x, lag(x))
+    High = na.locf(apply(p, 1, max), na.rm=F)
+    Low = na.locf(apply(p, 1, min), na.rm=F)
+    Close = x
+    hlv <- 0; 
+    MAHigh <- ma(High, n = n)
+    MALow <- ma(Low, n = n)
+    SSLd <- c()
+    SSLu <- c()
+    for(i in 2:length(x)) {
+        if(is.na(MAHigh[i]) | is.na(MALow[i])) {
+            SSLd[i] <- NA; 
+            SSLu[i] <- NA; 
+            next;
+        }
+        if(Close[i] > MAHigh[i]) 
+            hlv <- 1;
+        if(Close[i] < MALow[i]) 
+            hlv <- -1;  
+        if(hlv==-1) {
+            SSLd[i] <- MAHigh[i]; 
+            SSLu[i] <- MALow[i]
+        }
+        else {
+            SSLd[i] <- MALow[i]
+            SSLu[i] <- MAHigh[i]
+        }
+    }
+    return((SSLu - SSLd) / sd(c(0, diff(x))))
+}
+
+
 DiDi <- function(x, slow = 20, avg = 8, ma=TTR::SMA) {
   hlv <- 0; 
   MAslow <- ma(x, n = slow)
@@ -124,7 +157,7 @@ McGinleyDynamicIndicator <- function(x, n=20) {
   return(md)
 }
 
-VolatilityRatio <- function(x, n=20, sma=TTR::SMA) {
+VolatilityRatio <- function(x, n=20, sma=TTR::EMA) {
   return(runSD(x, n) / sma(runSD(x, n),n) - 1 )
 }
 

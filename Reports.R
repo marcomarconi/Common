@@ -18,20 +18,20 @@ strategy_performance <- function(returns, dates = NULL, period = 252) {
   df <- data.frame(Dates = dates, Returns = returns) %>% arrange(Dates)
   daily_returns <- df$Returns
   annual_returns <- group_by(df, year(Dates)) %>%
-    summarise(Dates = first(year(Dates)), Returns = sum(Returns, na.rm = TRUE)) %>%
+    summarise(Returns = sum(Returns, na.rm = TRUE)) %>%
     pull(Returns)
   monthly_returns <- group_by(df, yearmonth(Dates)) %>%
-    summarise(Dates = first(yearmonth(Dates)), Returns = sum(Returns, na.rm = TRUE)) %>%
+    summarise(Returns = sum(Returns, na.rm = TRUE)) %>%
     pull(Returns)
   weekly_returns <- group_by(df, yearweek(Dates)) %>%
-    summarise(Dates = first(yearweek(Dates)), Returns = sum(Returns, na.rm = TRUE)) %>%
+    summarise(Returns = sum(Returns, na.rm = TRUE)) %>%
     pull(Returns)
   mean_ann_ret <- mean(annual_returns, na.rm = TRUE) * 100
   ann_sd <- sd(daily_returns, na.rm = TRUE) * sqrt(period) * 100
   sr <- mean(daily_returns, na.rm = TRUE) / sd(daily_returns, na.rm = TRUE) * sqrt(period)
   skew_ <- skew(weekly_returns[weekly_returns!=0])
-  kurtosis_ <- kurt(weekly_returns[weekly_returns!=0])
-  demeaned_returns <- daily_returns[daily_returns!=0] - mean(daily_returns[daily_returns!=0])
+  #kurtosis_ <- kurt(weekly_returns[weekly_returns!=0])
+  demeaned_returns <- daily_returns[daily_returns!=0] - mean(daily_returns[daily_returns!=0], na.rm=T)
   q <- quantile(demeaned_returns, probs = c(0.01, 0.3, 0.7, 0.99), na.rm = TRUE)
   lower_tail <- as.numeric(q[1] / q[2] / 4.43)
   upper_tail <- as.numeric(q[4] / q[3] / 4.43)
@@ -40,7 +40,7 @@ strategy_performance <- function(returns, dates = NULL, period = 252) {
   drawdown <- peak - cum_returns
   max_drawdown <- -(exp(drawdown[which.max(drawdown)]) - 1) * 100
   avg_drawdown <- -(exp(mean(drawdown)) - 1) * 100
-  gsr <- sr * (1 + skew_/6*sr - (kurtosis_ - 3)/24*sr^2 )
+  #gsr <- sr * (1 + skew_/6*sr - (kurtosis_ - 3)/24*sr^2 )
   cum_annual_returns <- cumsum(replace(annual_returns, is.na(annual_returns), 0))
   r2 <- summary(lm(1:length(cum_annual_returns) ~ 0 + cum_annual_returns))$adj.r.squared
   # turnover <- round(length(rle(as.vector(na.omit(sign(returns))))$length) / (length(returns) / period), 1)
@@ -54,7 +54,7 @@ strategy_performance <- function(returns, dates = NULL, period = 252) {
     "Max DD" = max_drawdown,
     "Avg DD" = avg_drawdown,
     "Adj Avg DD" = avg_drawdown / ann_sd,
-    "GSR" = gsr,
+    #"GSR" = gsr,
     "R2" = r2
   )
   return(lapply(results, round, 2))
@@ -118,14 +118,6 @@ merge_portfolio_list <- function(portfolio_list) {
   colnames(full_df) <- c("Date", names(portfolio_list))
   # full_df[is.na(full_df)] <- 0
   return(full_df)
-}
-
-# in percentages
-calculate_volatility <- function(returns, long_span=252, short_span=35,  weights=c(0.3, 0.7), period=252){
-  vol_short <- sqrt(EMA(replace(returns, is.na(returns), 0)^2, short_span))
-  vol_long <- runMean(vol_short, long_span)
-  vol <-  (weights[1] * vol_long + weights[2] * vol_short) * sqrt(period) # one year instead of ten
-  return(vol)
 }
 
 

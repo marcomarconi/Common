@@ -10,6 +10,16 @@ matplot2 <- function(df, ...){
   matplot(df, type="l", lty=1, ...=...)
 }
 
+
+# in percentages
+calculate_volatility <- function(returns, long_span=252, short_span=35,  weights=c(0.3, 0.7), period=252){
+    vol_short <- sqrt(EMA(replace(returns, is.na(returns), 0)^2, short_span))
+    vol_long <- runMean(vol_short, long_span)
+    vol <-  (weights[1] * vol_long + weights[2] * vol_short) * sqrt(period) # one year instead of ten
+    return(vol)
+}
+
+
 random_ohlc <- function(n=100, m=24, mu=0, sigma=1, lambda=1000) {
     x <- rnorm(n*m, mu, sigma) %>% cumsum
     df <- data.frame(N=rep(1:n, each=m), M=rep(1:m, n), X=x) %>% group_by(N) %>% summarize(Open=first(X), High=max(X), Low=min(X), Close=last(X))

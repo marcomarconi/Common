@@ -114,7 +114,11 @@ getIVP <- function(covMat) {
 }
 
 
-
+simple_portfolio_weights <- function(portfolio){
+    weights <- t(apply(portfolio,1,function(x)rep(1/sum(!is.na(x)), ncol(portfolio))))
+    weights[is.na(portfolio)] <- 0
+    return(weights)
+}
 
 # Get returns weight by considering SD and correlations TRY TO IMPLEMENT THE FORMULA IN LEVERAGED TRADER
 get_portofolio_weights <- function(returns, SD = TRUE, CORR = FALSE,  HRP = FALSE) {
