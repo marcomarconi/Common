@@ -1,5 +1,40 @@
 
 
+# in percentages
+calculate_volatility <- function(returns, long_span=252, short_span=32,  weights=c(0.3, 0.7), period=252){
+    vol_short <- sqrt(EMA(replace(returns, is.na(returns), 0)^2, short_span))
+    vol_long <- runMean(vol_short, long_span)
+    vol <-  (weights[1] * vol_long + weights[2] * vol_short) * sqrt(period) # one year instead of ten
+    return(vol)
+}
+
+normalize_price <- function(adjclose, close, volatility, period=252) {
+    np <- rep(NA, length(close))
+    np[1] <- 0
+    for(i in 2:length(close)) {
+        np[i] <-  (100 * (adjclose[i] - adjclose[i-1]) / (close[i] * volatility[i] / sqrt(period))) + np[i-1]
+        if(is.na(np[i]))
+            np[i] <- np[i-1]
+    }
+    return(np)
+}
+
+cap_forecast <- function(x, cap=20) {
+    return(ifelse(x > cap, cap, ifelse(x < -cap, -cap, x ) ))
+}
+
+decimalplaces <- function(x) {
+    if ((x %% 1) != 0) {
+        nchar(strsplit(sub('0+$', '', as.character(x)), ".", fixed=TRUE)[[1]][[2]])
+    } else {
+        return(0)
+    }
+}
+
+round_position <- function(position, min_position, position_tick) {
+    return(ifelse(abs(position) < min_position,  0, round(position, sapply(position_tick, decimalplaces ))))
+}
+
 # Helper function to calculate the HRP
 HRP <- function(returns, absolute_correlation=FALSE) {
     if(any(is.na(returns)))
@@ -147,11 +182,6 @@ get_portofolio_weights <- function(returns, SD = TRUE, CORR = FALSE,  HRP = FALS
   return(weights)
 }
 
-
-
-instrumentVolatility <- function(returns, period=252) { 
-  return(apply(returns, 2, sd, na.rm=TRUE)*sqrt(period))
-}
 
 
 calculateIDM <- function(returns, weights=NULL, absolute_correlation=TRUE) {

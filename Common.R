@@ -11,13 +11,16 @@ matplot2 <- function(df, ...){
 }
 
 
-# in percentages
-calculate_volatility <- function(returns, long_span=252, short_span=35,  weights=c(0.3, 0.7), period=252){
-    vol_short <- sqrt(EMA(replace(returns, is.na(returns), 0)^2, short_span))
-    vol_long <- runMean(vol_short, long_span)
-    vol <-  (weights[1] * vol_long + weights[2] * vol_short) * sqrt(period) # one year instead of ten
-    return(vol)
+
+montecarlo_resampler <- function(x, n, f, ...) {
+    res <- rep(NA, n)
+    for(i in 1:n){
+        r <- sample(x, length(x), replace = T)
+        res[i] <- f(r, ...)
+    }
+    return(res)
 }
+
 
 
 random_ohlc <- function(n=100, m=24, mu=0, sigma=1, lambda=1000) {
@@ -140,16 +143,6 @@ load_all_data <- function(dir="/home/marco/trading/Historical Data/Yahoo/Scrapin
       Closes_yahoo <<- Closes
     }
   }
-}
-
-
-montecarlo_resampler <- function(x, n, f, ...) {
-    res <- rep(NA, n)
-    for(i in 1:n){
-        r <- sample(x, length(x), replace = T)
-        res[i] <- f(r, ...)
-    }
-    return(res)
 }
 
 
