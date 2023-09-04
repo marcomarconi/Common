@@ -40,7 +40,8 @@ round_position <- function(position, min_position, position_tick) {
 # Running correlation matrix, usually to be run with weekly data.
 runCorMatrix <- function(M, n=25, absolute_correlation=FALSE) {
     nas <- lapply(1:(n-1), function(i)matrix(NA, nrow = ncol(M), ncol = ncol(M)))
-    run_corr_matrices <- lapply(n:nrow(M), function(i){print(i); c(identity, abs)[[absolute_correlation]](cor(M[(i-n):i,], use="pairwise.complete.obs"))})
+    run_corr_matrices <- lapply(n:nrow(M), function(i)
+        c(identity, abs)[[absolute_correlation+1]](cor(M[(i-n):i,], use="pairwise.complete.obs")))
     run_corr_matrices <- c(nas, run_corr_matrices)
     run_corr_vectors <- lapply(run_corr_matrices, as.vector) 
     corr_by_date <- do.call(cbind, run_corr_vectors)
