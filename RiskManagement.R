@@ -33,8 +33,13 @@ decimalplaces <- function(x) {
     }
 }
 
+# round_position <- function(position, min_position, position_tick) {
+#     return(ifelse(abs(position) <= min_position,  0, round(position, sapply(position_tick, decimalplaces))))
+# }
+
 round_position <- function(position, min_position, position_tick) {
-    return(ifelse(abs(position) < min_position,  0, round(position, sapply(position_tick, decimalplaces))))
+    rounded <- round(position, sapply(position_tick, decimalplaces))
+    return(ifelse(abs(rounded) < min_position, 0, rounded))
 }
 
 # Running correlation matrix, usually to be run with weekly data.
