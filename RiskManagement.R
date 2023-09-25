@@ -57,7 +57,7 @@ runCorMatrix <- function(M, n=25, absolute_correlation=FALSE) {
 }
 
 # Rob Carver's ATFS book, Appendix B. I use absolute correlation values instead of capping negatives to zero.
-calculateIDM <- function(returns, weights=NULL, absolute_correlation=TRUE) {
+calculate_IDM <- function(returns, weights=NULL, absolute_correlation=TRUE) {
     corr <- cor(returns, use = "pairwise.complete.obs")
     if(absolute_correlation) 
         corr <- abs(corr)
@@ -66,6 +66,11 @@ calculateIDM <- function(returns, weights=NULL, absolute_correlation=TRUE) {
     idm <- 1/(weights %*% corr %*% weights)^0.5
     
     return(as.numeric(idm))
+}
+
+calculate_portfolio_volatility <- function(capital, positions, contractsizes, Prices, FXs, cov_matrix) {
+    w <- as.numeric(positions * contractsizes * Prices / FXs / capital) 
+    return(as.numeric(sqrt(w %*% cov_matrix %*% w)))
 }
 
 
@@ -99,6 +104,14 @@ dynamic_portfolio <- function(capital, optimal_positions, notional_exposures, co
     evaluate <- function(weights_optimal, weights, cov_matrix) {
         solution_gap <- weights_optimal - weights
         track_error <- as.numeric(sqrt(t(solution_gap) %*% cov_matrix %*% solution_gap))
+        if(any(is.nan(track_error))) {
+            print("a")
+            print(weights_optimal)
+            a <<- weights_optimal
+            b <<- weights
+            print("b")
+            print(weights)
+            print("ciao")}
         trade_costs <- calculate_costs(weights)
         return(track_error + trade_costs)
     }
