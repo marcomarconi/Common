@@ -56,11 +56,11 @@ runCorMatrix <- function(M, n=25, absolute_correlation=FALSE) {
     return(Q)
 }
 
-# Rob Carver's ATFS book, Appendix B. I use absolute correlation values instead of capping negatives to zero.
-calculate_IDM <- function(returns, weights=NULL, absolute_correlation=TRUE) {
+# Rob Carver's ATFS book, Appendix B. 
+calculate_IDM <- function(returns, weights=NULL, floor_correlation=TRUE) {
     corr <- cor(returns, use = "pairwise.complete.obs")
-    if(absolute_correlation) 
-        corr <- abs(corr)
+    if(floor_correlation) 
+        corr[corr<0] <- 0
     if(is.null(weights))
         weights <- rep(1/ncol(returns), ncol(returns))
     idm <- 1/(weights %*% corr %*% weights)^0.5
