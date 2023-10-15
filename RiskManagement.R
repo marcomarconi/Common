@@ -84,17 +84,15 @@ calculate_portfolio_volatility <- function(capital, positions, contractsizes, Pr
 # cov_matrix : covariance matrix of instruments returns, usually calculated from the last 6 months of (daily or weekly) returns.
 # previous_position : vector of the previous optimal positions. All zeroes if not provided.
 # max_positions : vector of the max allowed positions (in absolute contracts), usually corresponding to a forecast of 20 (see above formula). Ignored if NULL
-# min_positions : vector of the min allowed positions (in absolute contracts). If NULL, it is set to the minimum incremental step (1 contract for futures).
+# min_positions : vector of the min allowed positions (in absolute contracts). Ignored if NULL
 # costs_per_contract : vector of the costs to trade one contract, in price scale. 
 # trade_shadow_cost : a factor multiplier of the cost per contracts.
-# fractional : TRUE is your broker allow fractional contracts, like for CFDs. The algorithm will use the decimal part of the positions as incremental step 
-#              in the greedy algorithm. If you are trading futures where all contracts are 1, just set it to FALSE.
-# max_factor : maximum multiple of optimal position allowed (e.g. if optimal position == 2 and max_factor == 2, the optimized position will be <= 4). 
-#
+# fractional : If your broker allow fractional contracts, like for CFDs, this is the minimal position increment. If you are trading futures where all contracts are 1, just ignore it.
 # returned value: a vector of optimized positions according to the dynamic portfolio algorithm.
 dynamic_portfolio <- function(capital, optimal_positions, notional_exposures, cov_matrix, 
-                              previous_position = NULL, min_positions=NULL, max_positions=NULL, costs_per_contract = NULL, trade_shadow_cost = 1, fractional=TRUE, max_factor=2) {
-    # Calculate the cost of making trades. trade_shadow_cost represents the number of expected trades in year
+                              previous_position = NULL, min_positions=NULL, max_positions=NULL, costs_per_contract = NULL, 
+                              trade_shadow_cost = 1, fractional=NULL) {
+    # Calculate the cost of making trades. trade_shadow_cost represents the number of expected trades in year 
     calculate_costs <- function(weights) {
         trade_gap <- abs(weights_previous - weights)
         trade_costs <- trade_shadow_cost * sum(trade_gap * costs_per_trade_in_weight)
@@ -102,35 +100,34 @@ dynamic_portfolio <- function(capital, optimal_positions, notional_exposures, co
     }
     # Calculate the error of given weights from the optimal weights considering instruments correlations, plus optional costs
     evaluate <- function(weights_optimal, weights, cov_matrix) {
-        solution_gap <- weights_optimal - weights
+        solution_gap <- weights - weights_optimal 
         track_error <- as.numeric(sqrt(t(solution_gap) %*% cov_matrix %*% solution_gap))
-        if(any(is.nan(track_error))) {
-            print("a")
-            print(weights_optimal)
-            a <<- weights_optimal
-            b <<- weights
-            print("b")
-            print(weights)
-            print("ciao")}
+        if(any(is.nan(track_error)))           
+            stop(paste("dynamic_portfolio: NAs is the tracking error"))
         trade_costs <- calculate_costs(weights)
         return(track_error + trade_costs)
     }
     # The greedy algorithm (see https://qoppac.blogspot.com/2021/10/mr-greedy-and-tale-of-minimum-tracking.html)
-    find_possible_new_best <- function(weights_optimal, weights_max, weights_per_contract, direction, best_solution, best_value, cov_matrix, max_factor, buffer) {
+    find_possible_new_best <- function(weights_optimal, weights_max, weights_min, weights_per_contract, direction, best_solution, best_value, cov_matrix) {
         new_best_value <- best_value
         new_solution <- best_solution
         count_assets <- length(best_solution)
         for (i in sample(1:count_assets)) {
             temp_step <- best_solution
-            if(temp_step[i] == 0) {
+            # The first increment will be the minimum position (as portfolio weight), if provided
+            if(temp_step[i] == 0 & weights_min[i] > 0) {
                 temp_step[i] <- temp_step[i] + weights_min[i] * direction[i]
+            # Otherwise, do the normal greedy increments
             } else {
                 temp_step[i] <- temp_step[i] + weights_per_contract[i] * fractional[i] * direction[i]
             }
+            # Check if we have exceeded the maximum position (as portfolio weight), if provided
             if(abs(temp_step[i]) > weights_max[i])
                 temp_step[i] <- weights_max[i] * sign(temp_step[i])
-            else if (abs(temp_step[i]) > max_factor * abs(weights_optimal[i]))
-                temp_step[i] <- max_factor * weights_optimal[i]
+            # Check we haven't exceed the portfolio capital (weight = 1)
+            #if(sum(abs(temp_step)) > 1)
+            #    temp_step[i] <- best_solution[i]
+            # Evaluate this solution and update the current best
             temp_objective_value <- evaluate(weights_optimal, temp_step, cov_matrix)
             if (temp_objective_value < new_best_value) {
                 new_best_value <- temp_objective_value
@@ -140,32 +137,28 @@ dynamic_portfolio <- function(capital, optimal_positions, notional_exposures, co
         return(list(new_best_value, new_solution))
     }
     
-    # Number os instruments
+    # Number of instruments
     n <- nrow(cov_matrix)
     # Set previous positions as zero if not specified
-    if (is.null(previous_position)) {
+    if (is.null(previous_position)) 
         previous_position <- rep(0, n)
-    }
     # Set trading costs to zero if not specified
-    if (is.null(costs_per_contract)) {
+    if (is.null(costs_per_contract)) 
         costs_per_contract <- rep(0, n)
-    }
-    # Find a fractional increments from positions (e.g. if position == 1.2 then the increment is 0.1)
-    if (!fractional) {
+    # If fractional is not provided we assume an increment of 1
+    if (is.null(fractional)) 
         fractional <- rep(1, n)
-    } else {
-        fractional <-  10^(floor(log10(abs(optimal_positions)))-1)
-    }
+    # Calculate contracts weights
     weights_per_contract <- notional_exposures / capital
     weights_optimal <- optimal_positions * weights_per_contract 
     weights_max <- if(!is.null(max_positions)) max_positions * weights_per_contract else rep(Inf, n)
-    weights_min <- if(!is.null(min_positions)) min_positions * weights_per_contract else weights_per_contract * fractional
+    weights_min <- if(!is.null(min_positions)) min_positions * weights_per_contract else rep(0, n)
     weights_previous <- previous_position * weights_per_contract
     costs_per_trade_in_weight <- (costs_per_contract  / capital) / weights_per_contract
     best_solution <- rep(0,n)
     best_value <- evaluate(weights_optimal, best_solution, cov_matrix)
     while (1) {
-        res <- find_possible_new_best(weights_optimal, weights_max, weights_per_contract, sign(weights_optimal), best_solution, best_value, cov_matrix, max_factor)
+        res <- find_possible_new_best(weights_optimal, weights_max, weights_min, weights_per_contract, sign(weights_optimal), best_solution, best_value, cov_matrix)
         new_best_value <- res[[1]]
         new_solution <- res[[2]]
         if (new_best_value < best_value) {

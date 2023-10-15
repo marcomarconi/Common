@@ -70,7 +70,7 @@ portfolio_summary <- function(portfolio, dates = NULL, period = 252, benchmark.d
     stop(paste("portfolio_summary: portfolio should be of class matrix"))
   }
   if (is.null(dates)) {
-    dates <- seq(as.Date("1970/01/01"), by = "day", length.out = length(returns))
+    dates <- seq(as.Date("1970/01/01"), by = "day", length.out = nrow(portfolio))
   }
   returns <- rowSums(portfolio, na.rm = TRUE)
   results <- strategy_performance(returns, dates = dates, period = period)
