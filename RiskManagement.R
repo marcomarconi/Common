@@ -9,12 +9,23 @@ calculate_volatility <- function(returns, long_span=252, short_span=32,  weights
 }
 
 
-# Rob Carver's ATFS book, strategy 17.
-normalize_price <- function(adjclose, close, volatility, period=252) {
+# ?
+normalize_price_ <- function(adjclose, close, volatility, period=252, mult=100) {
     np <- rep(NA, length(close))
     np[1] <- 0
     for(i in 2:length(close)) {
-        np[i] <-  (100 * (adjclose[i] - adjclose[i-1]) / (close[i] * volatility[i] / sqrt(period))) + np[i-1]
+        np[i] <-  (mult * (adjclose[i] - adjclose[i-1]) / (close[i] * volatility[i] / sqrt(period))) + np[i-1]
+        if(is.na(np[i]))
+            np[i] <- np[i-1]
+    }
+    return(np)
+}
+# Rob Carver's ATFS book, strategy 17.
+normalize_price <- function(close, volatility, period=1, mult=1) {
+    np <- rep(NA, length(close))
+    np[1] <- 0
+    for(i in 2:length(close)) {
+        np[i] <-  (mult * (close[i] - close[i-1]) / (volatility[i] / sqrt(period))) + np[i-1]
         if(is.na(np[i]))
             np[i] <- np[i-1]
     }
