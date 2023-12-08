@@ -114,10 +114,12 @@ portfolio_summary <- function(portfolio, dates = NULL, period = 252, benchmark.d
   }
   return(list(Aggregate = results, Symbols = symbol_result))
 }
+
 merge_portfolio_list <- function(portfolio_list) {
-  full_df <- Reduce(function(...) full_join(..., by = "Date", all = TRUE, incomparables = NA), portfolio_list) %>% arrange(Date)
-  colnames(full_df) <- c("Date", names(portfolio_list))
-  # full_df[is.na(full_df)] <- 0
+  names <- names(portfolio_list)
+  full_df <- Reduce(function(...) full_join(..., by = "Date"), portfolio_list)
+  colnames(full_df) <- c("Date", names)
+  full_df <- arrange(full_df, Date)
   return(full_df)
 }
 

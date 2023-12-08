@@ -14,25 +14,30 @@ matplot2 <- function(df, ...){
 
 montecarlo_resampler <- function(x, n, f, ...) {
     res <- rep(NA, n)
-    for(i in 1:n){
-        r <- sample(x, length(x), replace = T)
-        res[i] <- f(r, ...)
-    }
+    for(i in 1:n)
+        res[i] <- f(sample(x, length(x), replace = T), ...)
     return(res)
 }
 
 
 
-random_ohlc <- function(n=100, m=24, mu=0, sigma=1, lambda=1000) {
-    x <- rnorm(n*m, mu, sigma) %>% cumsum
-    df <- data.frame(N=rep(1:n, each=m), M=rep(1:m, n), X=x) %>% group_by(N) %>% summarize(Open=first(X), High=max(X), Low=min(X), Close=last(X))
-    df <- select(df, -N) %>% mutate(Ticks=rpois(n, lambda))
+random_ohlc <- function(n=252, m=1440, mu=0, sigma=0.001, lambda=1000) {
+    x <- rnorm(n*m, mu, sigma) %>% cumsum %>% exp
+    df <- data.frame(Time=rep(1:n, each=m), X=x) %>% group_by(Time) %>% summarize(Open=first(X), High=max(X), Low=min(X), Close=last(X))
+    df <- mutate(df, Ticks=rpois(n, lambda))
     return(df)
 }
 
+gbm_vec <- function(nsim = 1, t = 365, mu = 0, sigma = 0.1, S0 = 100, dt = 1./365) {
+    # matrix of random draws - one for each day for each simulation
+    epsilon <- matrix(rnorm((t-1)*nsim), ncol = nsim, nrow = t-1)  
+    # get GBM and convert to price paths
+    gbm <- exp((mu - sigma * sigma / 2) * dt + sigma * epsilon * sqrt(dt))
+    gbm <- apply(rbind(rep(S0, nsim), gbm), 2, cumprod)
+    return(gbm)
+}
 
-
-# Load some prices
+# Load some prices OLD
 load_all_data <- function(dir="/home/marco/trading/Historical Data/Yahoo/Scraping/", asset_file="/home/marco/trading/Historical Data/Yahoo/Scraping/Assets.txt", scraper_file="/home/marco/trading/Historical Data/Yahoo/retrieve.sh", download_investing=TRUE, download_yahoo=TRUE) {
   
   if(download_investing) {
