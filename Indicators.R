@@ -195,10 +195,7 @@ PD <- function(x) {
 }
 
 FD <- function(x) {
-    n <- length(x)
-    range <- max(x) - min(x)
-    L <- sum(sqrt((1/n)^2 + abs(diff(x)) / range))
-    return(1 + (log(L)+log(2))/(log(2*n)))
+    return(1 + (log(sum(sqrt((1/length(x))^2 + abs(diff(x)) / (max(x) - min(x)))))+log(2))/(log(2*length(x))))
 }
 
 # x are log/percentage returns
