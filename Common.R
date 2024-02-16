@@ -12,11 +12,8 @@ matplot2 <- function(df, ...){
 
 
 
-montecarlo_resampler <- function(x, n, f, ...) {
-    res <- rep(NA, n)
-    for(i in 1:n)
-        res[i] <- f(sample(x, length(x), replace = T), ...)
-    return(res)
+montecarlo_resampler <- function(x, n, f, m=1, ...) {
+    return(replicate(n, f(sample(x, max(m, sample.int(length(x), 1)), replace = T), ...)))
 }
 
 
@@ -28,7 +25,7 @@ random_ohlc <- function(n=252, m=1440, mu=0, sigma=0.001, lambda=1000) {
     return(df)
 }
 
-gbm_vec <- function(nsim = 1, t = 365, mu = 0, sigma = 0.1, S0 = 100, dt = 1./365) {
+gbm_vec <- function(nsim = 1, t = 365, mu = 0, sigma = 0.3, S0 = 100, dt = 1./365) {
     # matrix of random draws - one for each day for each simulation
     epsilon <- matrix(rnorm((t-1)*nsim), ncol = nsim, nrow = t-1)  
     # get GBM and convert to price paths

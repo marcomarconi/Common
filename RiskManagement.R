@@ -44,9 +44,6 @@ decimalplaces <- function(x) {
     }
 }
 
-# round_position <- function(position, min_position, position_tick) {
-#     return(ifelse(abs(position) <= min_position,  0, round(position, sapply(position_tick, decimalplaces))))
-# }
 
 round_position <- function(position, min_position, position_tick) {
     rounded <- round(position, sapply(position_tick, decimalplaces))
@@ -323,57 +320,5 @@ getIVP <- function(covMat) {
 }
 }
 
-
-# Get returns weight by considering SD and correlations TRY TO IMPLEMENT THE FORMULA IN LEVERAGED TRADER
-get_portofolio_weights <- function(returns, SD = TRUE, CORR = FALSE,  HRP = FALSE) {
-  if(any(is.na(returns)))
-    stop("NAs in the returns matrix")
-  if(any(is.numeric(returns)))
-    stop("Non-numbers in the returns matrix (have you removed the Date column?)")
-  if(SD) {
-    sds <- apply(returns, 2, sd, na.rm=TRUE)
-    sds <- 1/sds
-    sds_weights <- t(replicate(nrow(returns), sds/sum(sds)))
-  } else
-    sds_weights <- t(replicate(nrow(returns), rep(1, ncol(returns))))
-  if(CORR) {
-    if(!HRP) {
-      corr_weights <- 1-(abs(cor(returns)) %>% colMeans())
-      corr_weights <- corr_weights/sum(corr_weights)
-      corr_weights <- matrix(corr_weights, nrow(returns), ncol(returns), byrow = TRUE) 
-    } else
-      corr_weights <- runHRP(returns, lookback = 50)
-  } else
-    corr_weights <- t(replicate(nrow(returns), rep(1, ncol(returns))))
-  weights <- sds_weights * corr_weights
-  weights[is.na(weights)] <- 0
-  weights <- t(apply(weights, 1, function(x) if(sum(x)==0) setNames(rep(0, length(x)), colnames(weights)) else x/sum(x)))
-  return(weights)
-}
-
-
-
-
-
-combineStrategies <- function(Equities) {
-  dates <- sort(as.Date(unique(unlist((lapply(Equities, function(x) lapply(x, function(y) y$Date)))))))
-  symbols <- sort(unique(unlist((lapply(Equities, function(x) lapply(x, function(y) y$Symbol))))))
-  trades <- matrix(0, ncol=length(symbols), nrow=length(dates))
-  colnames(trades) <- symbols
-  rownames(trades) <- as.character(dates)
-  for(n in names(Equities)) {
-    for(s in names(Equities[[n]])){
-      df <- Equities[[n]][[s]]
-      for(i in 1:nrow(df)){
-        trades[df$Date[i], s] <- trades[df$Date[i], s]  + df$Trade[i]
-      }
-    }
-  }
-  joint <- reshape2::melt(trades) %>% setnames(old = colnames(.), new = c("Date", "Symbol", "Trade"))
-  joint$Date <- as.character(joint$Date )
-  joint$Symbol <- as.character(joint$Symbol )
-  return(joint)
-
-}
 
 

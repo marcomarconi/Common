@@ -66,7 +66,7 @@ portfolio_summary <- function(portfolio, dates = NULL, period = 252, benchmark.d
   if (!is.null(dates) & class(dates) != "Date") {
     stop(paste("portfolio_summary: dates should be of class Date"))
   }
-  if (class(portfolio) != "matrix") {
+  if (!inherits(portfolio, "matrix")) {
     stop(paste("portfolio_summary: portfolio should be of class matrix"))
   }
   if (is.null(dates)) {
