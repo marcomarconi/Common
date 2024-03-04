@@ -10,7 +10,14 @@ matplot2 <- function(df, ...){
   matplot(df, type="l", lty=1, ...=...)
 }
 
-
+run_ntile <- function(x, k=length(x), n) {
+  rv <- runquantile(x, k, probs = seq(0, 1, length.out=n+1), align = "right")
+  q <- sapply(1:(ncol(rv)-1), function(j) ifelse(x >= rv[,j] & x < rv[,j+1] , j, 0))
+  q[,(ncol(rv)-1)] <- ifelse(x == rv[ ,ncol(rv)], ncol(rv)-1, q[,(ncol(rv)-1)])
+  fc <-  as.integer(rowSums(q))
+  return(fc)
+  
+}
 
 montecarlo_resampler <- function(x, n, f, m=1, ...) {
     return(replicate(n, f(sample(x, max(m, sample.int(length(x), 1)), replace = T), ...)))
