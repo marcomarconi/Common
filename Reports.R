@@ -94,19 +94,20 @@ portfolio_summary <- function(portfolio, dates = NULL, period = 252, benchmark.d
   }
   if (plot_stats) {
     layout(matrix(c(1,1,2,3), 2, 2, byrow = TRUE))
+    par(mar=c(3,5,2,1))
     returns <- replace(returns, is.na(returns), 0) * 100
     cum_returns <- cumsum(returns)
-    plot(sort(as.Date(dates)), cum_returns, ylab = "Equity curve log%", ylim=c(min(cum_returns), max(cum_returns)*1.1), xlab=NA)
+    plot(sort(as.Date(dates)), cum_returns, ylab = "Equity curve log%", ylim=c(min(cum_returns), max(cum_returns)*1.1), xlab=NA, cex.lab=2)
     chunks <- group_by(data.frame(Date = as.Date(dates), ret = returns), year(Date)) %>%
       summarise(sum = round(sum(ret), 1), first = first(Date), .groups = "drop")
     abline(v = chunks$first, lty = 2, lwd = 0.5)
-    text(x = chunks$first + period / 2, y = max(cum_returns)*1.1, labels = chunks$sum, cex = 0.75)
-    matplot(apply(portfolio, 2, function(x) cumsum(replace(x, is.na(x), 0))), type = "l", lwd = 2, lty = 1, ylab = "Assets curves log%", xlab=NULL, xaxt='n')
+    text(x = chunks$first + period / 2, y = max(cum_returns)*1.1, labels = chunks$sum, cex = 1)
+    matplot(apply(portfolio, 2, function(x) cumsum(replace(x, is.na(x), 0))), type = "l", lwd = 2, lty = 1, ylab = "Assets curves log%", xlab=NULL, xaxt='n', cex.lab=2)
     abline(h = 0, lwd = 2)
     #axis(side = 1, labels = year(as.Date(dates)), at = seq(1, length(dates)), tick = FALSE) # does not work well
     peak <- cummax(cum_returns/100)
     drawdown <- (exp(peak - cum_returns/100) - 1) * 100
-    plot(sort(as.Date(dates)), -drawdown, ylab = "Drawdown %", type="l", xlab="")
+    plot(sort(as.Date(dates)), -drawdown, ylab = "Drawdown %", type="l", xlab="", cex.lab=2)
   }
   symbol_result <- NULL
   if (symbol_wise) {
