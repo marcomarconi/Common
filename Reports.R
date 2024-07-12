@@ -96,24 +96,33 @@ portfolio_summary <- function(portfolio, dates = NULL, period = 252, benchmark.d
     layout(matrix(c(1,1,2,3), 2, 2, byrow = TRUE))
     par(mar=c(3,5,2,1))
     returns <- replace(returns, is.na(returns), 0) * 100
-    cum_returns <- cumsum(returns)
-    plot(sort(as.Date(dates)), cum_returns, ylab = "Equity curve log%", ylim=c(min(cum_returns), max(cum_returns)*1.1), xlab=NA, cex.lab=2)
+    pnl <- cumsum(returns)
+    plot(sort(as.Date(dates)), pnl, ylab = "Equity curve log%", ylim=c(min(pnl), max(pnl)*1.1), xlab=NA, cex.lab=2, type="o")
     chunks <- group_by(data.frame(Date = as.Date(dates), ret = returns), year(Date)) %>%
       summarise(sum = round(sum(ret), 1), first = first(Date), .groups = "drop")
     abline(v = chunks$first, lty = 2, lwd = 0.5)
-    text(x = chunks$first + period / 2, y = max(cum_returns)*1.1, labels = chunks$sum, cex = 1)
+    text(x = chunks$first + period / 2, y = max(pnl)*1.1, labels = chunks$sum, cex = 1)
     matplot(apply(portfolio, 2, function(x) cumsum(replace(x, is.na(x), 0))), type = "l", lwd = 2, lty = 1, ylab = "Assets curves log%", xlab=NULL, xaxt='n', cex.lab=2)
     abline(h = 0, lwd = 2)
     #axis(side = 1, labels = year(as.Date(dates)), at = seq(1, length(dates)), tick = FALSE) # does not work well
-    peak <- cummax(cum_returns/100)
-    drawdown <- (exp(peak - cum_returns/100) - 1) * 100
+    ema_window <- 32
+    SR <- EMA(returns,ema_window)/sqrt(EMA(returns^2, ema_window))*sqrt(period)
+    plot(sort(as.Date(dates)), SR, ylab = "Sharpe Ratio", type="l", xlab="", cex.lab=2); abline(h=0)
+    layout(matrix(c(1,2,3,4), 2, 2, byrow = TRUE))
+    returns_monthly <- data.frame(Month=yearmonth(as.Date(dates)), Return=returns) %>% group_by(Month) %>% reframe(Return=sum(Return))
+    hist(returns_monthly$Return); abline(v = median(returns_monthly$Return))
+    peak <- cummax(pnl/100)
+    drawdown <- (exp(peak - pnl/100) - 1) * 100
     plot(sort(as.Date(dates)), -drawdown, ylab = "Drawdown %", type="l", xlab="", cex.lab=2)
+    plot(1)
+    Vol <- sqrt(EMA(returns^2,ema_window))*sqrt(period)
+    plot(sort(as.Date(dates)), Vol, ylab = "Volatility %", type="l", xlab="", cex.lab=2)
   }
   symbol_result <- NULL
   if (symbol_wise) {
     symbol_result <- apply(portfolio, 2, function(x) unlist(strategy_performance(x, dates = dates))) %>% t() %>% as.data.frame
   }
-  return(list(Aggregate = results, Symbols = symbol_result))
+  return(list(Aggregate = results, Symbols = symbol_result, PnL=data.frame(Date=as.Date(dates), PnL=pnl), DD=data.frame(Date=as.Date(dates), DD=drawdown)))
 }
 
 merge_portfolio_list <- function(portfolio_list) {
