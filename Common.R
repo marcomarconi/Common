@@ -10,6 +10,13 @@ matplot2 <- function(df, ...){
   matplot(df, type="l", lty=1, ...=...)
 }
 
+
+runZscore <- function(x, n=10) {
+  return((x-runMean(x, n))/runSD(x, n))
+}
+
+
+
 run_ntile <- function(x, k=length(x), n) {
   rv <- runquantile(x, k, probs = seq(0, 1, length.out=n+1), align = "right")
   q <- sapply(1:(ncol(rv)-1), function(j) ifelse(x >= rv[,j] & x < rv[,j+1] , j, 0))
