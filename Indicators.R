@@ -1,5 +1,9 @@
 # Technical indicators
 
+RSI2 <- function(x, n=20, maType=EMA) {
+    return((RSI(x, n, maType = maType) - 50) / 50)
+}
+
 GAS <- function(y) {
   h <- c(0,0)
   err <- c()
