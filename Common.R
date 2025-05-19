@@ -11,8 +11,8 @@ matplot2 <- function(df, ...){
 }
 
 
-runZscore <- function(x, n=10) {
-  return((x-runMean(x, n))/runSD(x, n))
+runZscore <- function(x, n=10, cumulative=FALSE) {
+  return((x-runMean(x, n, cumulative))/runSD(x, n, cumulative))
 }
 
 
@@ -40,12 +40,38 @@ random_ohlc <- function(n=252, m=1440, mu=0, sigma=0.001, lambda=1000) {
 }
 
 gbm_vec <- function(nsim = 1, t = 365, mu = 0, sigma = 0.3, S0 = 100, dt = 1./365) {
+    if(is.vector(sigma))
+        sigma_v <- sample(sigma, nsim, replace=TRUE)
+    else if(is.numeric(sigma) && length(sigma) == 1 )
+        sigma_v <- rep(sigma, nsim)
     # matrix of random draws - one for each day for each simulation
     epsilon <- matrix(rnorm((t-1)*nsim), ncol = nsim, nrow = t-1)  
     # get GBM and convert to price paths
-    gbm <- exp((mu - sigma * sigma / 2) * dt + sigma * epsilon * sqrt(dt))
+    ep_sigma <- sweep(epsilon, 2, sigma_v, `*`) * sqrt(dt)
+    mu_sigma <- (mu - sigma_v * sigma_v / 2) * dt
+    gbm <- exp( sweep(ep_sigma, 2, mu_sigma, `+`) )
     gbm <- apply(rbind(rep(S0, nsim), gbm), 2, cumprod)
     return(gbm)
+}
+
+gbm_garch_vec <- function(nsim = 1, t = 365, mu = 0, target_vol = 0.15, alpha = 0.1, beta = 0.89, S0 = 100, dt = 1./365) {
+    epsilon <- matrix(rnorm((t - 1) * nsim), ncol = nsim, nrow = t - 1)
+    omega <- target_vol^2 * (1 - alpha - beta)
+    # Specify GARCH(1,1) model
+    spec <- ugarchspec(
+        variance.model = list(model = "sGARCH", garchOrder = c(1, 1)),
+        mean.model = list(armaOrder = c(0, 0), include.mean = FALSE),
+        distribution.model = "norm",
+        fixed.pars = list(omega = omega, alpha1 = alpha, beta1 = beta)
+    )
+    sim <- ugarchpath(spec, n.sim = t * nsim, m.sim = nsim) 
+    vol <- sigma(sim) # Extract daily volatility
+
+    # Generate GBM with GARCH volatilities
+    gbm <- exp((mu - 0.5 * vol[-1]^2) * dt + vol[-1] * sqrt(dt) * epsilon)
+    gbm <- apply(rbind(rep(S0, nsim), gbm), 2, cumprod)
+    
+    return(list(gbm=gbm, vol=vol))
 }
 
 # Load some prices OLD

@@ -2,6 +2,8 @@
 
 # Calculate volatility from log returns
 calculate_volatility <- function(returns, long_span=252, short_span=32,  weights=c(0.3, 0.7), period=252){
+    if(length(returns) < long_span+short_span)
+        return(rep(NA, length(returns)))
     vol_short <- sqrt(EMA(replace(returns, is.na(returns), 0)^2, short_span))
     vol_long <- runMean(vol_short, long_span)
     vol <-  (weights[1] * vol_long + weights[2] * vol_short) * sqrt(period) # one year instead of ten

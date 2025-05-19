@@ -29,7 +29,7 @@ strategy_performance <- function(returns, dates = NULL, period = 252) {
     pull(Returns)
   mean_ann_ret <- mean(annual_returns, na.rm = TRUE) * 100
   ann_sd <- sd(daily_returns, na.rm = TRUE) * sqrt(period) * 100
-  sr <- mean(daily_returns, na.rm = TRUE) / sd(daily_returns, na.rm = TRUE) * sqrt(period)
+  sr <- mean(daily_returns, na.rm = TRUE) / sd(daily_returns, na.rm = TRUE) * sqrt(period) # DO WE HAVE TO MULTIPLY BY sqrt(period)???
   skew_ <- skew(weekly_returns[weekly_returns!=0])
   #kurtosis_ <- kurt(weekly_returns[weekly_returns!=0])
   demeaned_returns <- daily_returns[daily_returns!=0] - mean(daily_returns[daily_returns!=0], na.rm=T)
