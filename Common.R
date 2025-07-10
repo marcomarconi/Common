@@ -12,7 +12,7 @@ matplot2 <- function(df, ...){
 
 
 runZscore <- function(x, n=10, cumulative=FALSE) {
-  return((x-runMean(x, n, cumulative))/runSD(x, n, cumulative))
+  return((x-runMean(x, n, cumulative = cumulative))/runSD(x, n, cumulative = cumulative))
 }
 
 
@@ -24,6 +24,10 @@ run_ntile <- function(x, k=length(x), n) {
   fc <-  as.integer(rowSums(q))
   return(fc)
   
+}
+
+minmax <- function(v) {
+    return(2 * ((v - min(v, na.rm=T)) / (max(v, na.rm=T) - min(v, na.rm=T))) - 1)
 }
 
 montecarlo_resampler <- function(x, n, f, m=1, ...) {
