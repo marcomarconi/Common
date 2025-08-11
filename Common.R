@@ -11,6 +11,12 @@ matplot2 <- function(df, ...){
 }
 
 
+unbiased_sd <- function(x) {
+    n <- length(x)
+    sd(x) * (sqrt(2 / (n - 1)) * gamma(n / 2) / gamma((n - 1) / 2))
+}
+
+
 runZscore <- function(x, n=10, cumulative=FALSE) {
   return((x-runMean(x, n, cumulative = cumulative))/runSD(x, n, cumulative = cumulative))
 }
@@ -35,6 +41,11 @@ montecarlo_resampler <- function(x, n, f, m=1, ...) {
 }
 
 
+adj_sharpe_ratio <- function(x) {
+    x <- na.omit(x)
+    SR <- mean(x) / sd(x)
+    SR * (1 + (skewness(x) / 6) * SR - ((kurtosis(x, excess = TRUE) / 24) * SR^2))
+}
 
 random_ohlc <- function(n=252, m=1440, mu=0, sigma=0.001, lambda=1000) {
     x <- rnorm(n*m, mu, sigma) %>% cumsum %>% exp
@@ -58,24 +69,24 @@ gbm_vec <- function(nsim = 1, t = 365, mu = 0, sigma = 0.3, S0 = 100, dt = 1./36
     return(gbm)
 }
 
-gbm_garch_vec <- function(nsim = 1, t = 365, mu = 0, target_vol = 0.15, alpha = 0.1, beta = 0.89, S0 = 100, dt = 1./365) {
-    epsilon <- matrix(rnorm((t - 1) * nsim), ncol = nsim, nrow = t - 1)
-    omega <- target_vol^2 * (1 - alpha - beta)
+gbm_garch_vec <- function(nsim = 1, t = 365, mu = 0, target_vol = 0.15, alpha = 0.05, beta = 0.94, gamma1 = 0, S0 = 100, dt = 1./365) {
+    epsilon <- matrix(rnorm(t * nsim), ncol = nsim, nrow = t)
+    omega <- log(target_vol) * (2 * (1 - beta))
     # Specify GARCH(1,1) model
     spec <- ugarchspec(
-        variance.model = list(model = "sGARCH", garchOrder = c(1, 1)),
+        variance.model = list(model = "eGARCH", garchOrder = c(1, 1)),
         mean.model = list(armaOrder = c(0, 0), include.mean = FALSE),
         distribution.model = "norm",
-        fixed.pars = list(omega = omega, alpha1 = alpha, beta1 = beta)
+        fixed.pars = list(omega = omega, alpha1 = alpha, beta1 = beta, gamma1 = gamma1)
     )
-    sim <- ugarchpath(spec, n.sim = t * nsim, m.sim = nsim) 
+    sim <- ugarchpath(spec, n.sim = t, m.sim = nsim) 
     vol <- sigma(sim) # Extract daily volatility
 
     # Generate GBM with GARCH volatilities
-    gbm <- exp((mu - 0.5 * vol[-1]^2) * dt + vol[-1] * sqrt(dt) * epsilon)
-    gbm <- apply(rbind(rep(S0, nsim), gbm), 2, cumprod)
+    gbm <- exp((mu - 0.5 * vol^2) * dt + vol * sqrt(dt) * epsilon)
+    gbm <- apply(rbind(rep(S0, nsim), gbm[-nrow(gbm),, drop=F]), 2, cumprod)
     
-    return(list(gbm=gbm, vol=vol))
+    return(list(gbm=gbm, vol=vol, eps=epsilon))
 }
 
 # Load some prices OLD
